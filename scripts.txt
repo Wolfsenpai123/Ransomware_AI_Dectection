@@ -1,0 +1,26 @@
+cat > run_phase1_behavior_demo.sh <<'SH'
+#!/usr/bin/env bash
+set -e
+
+echo "[1/4] Generating safe behavior logs..."
+python src/data/generate_safe_behavior_logs.py
+
+echo "[2/4] Building behavior features..."
+python src/features/build_behavior_features.py
+
+echo "[3/4] Training behavior models..."
+python src/models/train_behavior_models.py
+
+echo "[4/4] Generating MITRE mapping..."
+python src/explain/mitre_mapping.py
+
+echo "[+] Phase 1 completed."
+echo "[+] Metrics:"
+cat reports/behavior_model_metrics.csv
+
+echo ""
+echo "[+] MITRE alerts:"
+head reports/mitre_alerts.csv
+SH
+
+chmod +x run_phase1_behavior_demo.sh
