@@ -1,0 +1,15 @@
+pandas
+numpy
+scikit-learn
+xgboost
+matplotlib
+plotly
+streamlit
+joblib
+pyarrow
+pefile
+yara-python
+python-magic
+networkx
+shap
+jupyterlab

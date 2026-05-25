@@ -48,15 +48,15 @@ for i in range(1800):
 
     if r < 0.45:
         f = f"/home/user/docs/doc_{random.randint(1,120)}.txt"
-        add_events(ts, proc, pid, parent, "file_read", "read", f, "benign")
+        add_event(ts, proc, pid, parent, "file_read", "read", f, "benign")
     elif r < 0.68:
         f = f"/home/user/docs/doc_{random.randint(1,120)}.txt"
-        add_events(ts, proc, pid, parent, "file_write", "write", f, "benign",
+        add_event(ts, proc, pid, parent, "file_write", "write", f, "benign",
                    bytes_written=random.randint(100, 5000),
                    entropy_before=random.uniform(3.0, 5.0),
                    entropy_after=random.uniform(3.0, 5.5))
     elif r < 0.78:
-        add_events(ts, proc, pid, parent, "process_create", "exec", proc, "benign")
+        add_event(ts, proc, pid, parent, "process_create", "exec", proc, "benign")
     elif r < 0.90:
         domain = random.choice(["ubuntu.com", "github.com", "example.com", "pypi.org"])
         add_event(ts, proc, pid, parent
@@ -65,4 +65,46 @@ for i in range(1800):
         add_event(ts, proc, pid, parent, "network_connect", "connect", "remote", "benign",
                   dst_ip=f"93.184.216.{random.randint(1, 200)}",
                   dst_port=random.choice([80, 443]))
-        
+    
+# Ransomware-like simulated phase
+sim_proc = "suspicious_sim.exe"
+pid = 6666
+parent = "bash"
+
+for i in range(900):
+    ts = base_time + timedelta(seconds=1800 + i // 8)
+    phase = i
+
+    if phase < 100:
+        f = f"/home/user/docs/doc_{random.randint(1, 120)}.txt"
+        add_event(ts, sim_proc, pid, parent, "file_read", "read", f, "ransomware", "SimRansom")
+    elif phase < 720:
+        doc_id = random.randint(1, 250)
+        if random.random() < 0.55:
+            f = f"/home/user/docs/doc_{doc_id}.txt"
+            add_event(ts, sim_proc, pid, parent, "file_write", "write", f, "ransomware", "SimRansom",
+                      bytes_written=random.randint(5000, 70000),
+                      entropy_before=random.uniform(3.0, 5.0),
+                      entropy_after=random.uniform(7.0, 8.0))
+        else:
+            f = f"/home/user/docs/doc_{doc_id}.txt"
+            add_event(ts, sim_proc, pid, parent, "file_read", "read", f, "ransomware", "SimRansom",
+                      entropy_before=random.uniform(3.0, 5.0),
+                      entropy_after=random.uniform(3.0, 5.0))
+    elif phase == 720:
+        add_event(ts, sim_proc, pid, parent, "shadow_copy_delete", "delete", "shadow_copy", "ransomware", "SimRansom")
+    elif 721 <= phase < 760:
+        add_event(ts, sim_proc, pid, parent, "service_stop", "stop", random.choice(["backup", "security", "database"]), "service", "ransomware", "SimRansom")
+    elif 760 <= phase < 820:
+        add_event(ts, sim_proc, pid, parent, "registry_set", "set", "/registry/run/key", "ransomware", "SimRansom")
+    else:
+        domain = random.choice(["random-check.example", "update-node.example", "sync-api.example"])
+        add_event(ts, sim_proc, pid, parent, "dns_query", "query", domain, "ransomware", "SimRansom", domain=domain)
+
+df = pd.DataFrame(events)
+df.to_csv("data/raw/behavior_logs/simulated_safe_behavior.csv", index=False)
+
+print("[+] Created data/raw/behavior_logs/simulated_safe_behavior.csv")
+print(df.shape)
+print(df["label"].value_counts())
+print(df["event_type"].value_counts())
