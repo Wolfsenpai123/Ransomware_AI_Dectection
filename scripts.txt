@@ -1,26 +1,32 @@
-cat > run_phase1_behavior_demo.sh <<'SH'
+cat > check_final_outputs.sh <<'SH'
 #!/usr/bin/env bash
-set -e
 
-echo "[1/4] Generating safe behavior logs..."
-python src/data/generate_safe_behavior_logs.py
-
-echo "[2/4] Building behavior features..."
-python src/features/build_behavior_features.py
-
-echo "[3/4] Training behavior models..."
-python src/models/train_behavior_models.py
-
-echo "[4/4] Generating MITRE mapping..."
-python src/explain/mitre_mapping.py
-
-echo "[+] Phase 1 completed."
-echo "[+] Metrics:"
-cat reports/behavior_model_metrics.csv
+echo "===== Phase 1: Behavior Detection ====="
+ls -lh reports/behavior_model_metrics.csv reports/behavior_scored_windows.csv reports/mitre_alerts.csv 2>/dev/null
 
 echo ""
-echo "[+] MITRE alerts:"
-head reports/mitre_alerts.csv
+echo "===== Phase 2: Network Telemetry ====="
+ls -lh data/processed/network/network_features.csv data/processed/network/zeek_network_events.csv data/processed/network/suricata_events.csv 2>/dev/null
+
+echo ""
+echo "===== Phase 3: Fusion Model ====="
+ls -lh reports/fusion_model_metrics.csv reports/fusion_scored_windows.csv 2>/dev/null
+
+echo ""
+echo "===== Phase 4: Trend Analysis ====="
+ls -lh reports/trend_summary.csv reports/technique_yearly_frequency.csv reports/family_trend_summary.csv 2>/dev/null
+
+echo ""
+echo "===== Phase 5: Static / Reverse ====="
+ls -lh data/processed/static/static_features.csv reports/static/reverse_explanation.csv reports/static/static_analysis_report.json 2>/dev/null
+
+echo ""
+echo "===== Dashboard Tabs Check ====="
+grep -n "Static / Reverse\|Network Analysis\|Fusion Model\|Trend Analysis" app/streamlit_app.py || true
+
+echo ""
+echo "[+] Final output check completed."
 SH
 
-chmod +x run_phase1_behavior_demo.sh
+chmod +x check_final_outputs.sh
+./check_final_outputs.sh
