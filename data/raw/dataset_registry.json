@@ -1,0 +1,185 @@
+{
+  "datasets": [
+    {
+      "name": "MLRan",
+      "path": "data/raw/mlran",
+      "source_url": "https://github.com/faithfulco/mlran",
+      "type": "dynamic_behavior",
+      "priority": 1,
+      "symptom_groups": [
+        "file",
+        "process",
+        "network",
+        "family_similarity"
+      ],
+      "safety": "use_dataset_features_only"
+    },
+    {
+      "name": "RanSMAP",
+      "path": "data/raw/ransmap",
+      "source_url": "https://github.com/manabu-hirano/RanSMAP",
+      "type": "storage_memory_behavior",
+      "priority": 1,
+      "symptom_groups": [
+        "storage_memory",
+        "file"
+      ],
+      "safety": "selected_csv_traces_only_no_real_ransomware_execution",
+      "status": "waiting_for_windows_import"
+    },
+    {
+      "name": "BODMAS",
+      "path": "data/raw/bodmas",
+      "source_url": "https://github.com/whyisyoung/BODMAS",
+      "type": "static_pe",
+      "priority": 1,
+      "symptom_groups": [
+        "static_reverse"
+      ],
+      "safety": "use_feature_vectors_metadata_only"
+    },
+    {
+      "name": "CSU_Ransomware_Data",
+      "path": "data/raw/csu_ransomware",
+      "source_url": "https://github.com/CSCRC-SCREED/CSU-Ransomware-Data",
+      "type": "sysmon_engineered_features",
+      "priority": 1,
+      "symptom_groups": [
+        "file",
+        "process",
+        "registry",
+        "unknown_learning"
+      ],
+      "safety": "engineered_features_only"
+    },
+    {
+      "name": "RISS_Cuckoo_Ransomware",
+      "path": "data/raw/riss_cuckoo",
+      "source_url": "https://github.com/rissgrouphub/ransomwaredataset2016",
+      "type": "cuckoo_dynamic_reports",
+      "priority": 2,
+      "symptom_groups": [
+        "file",
+        "process",
+        "network",
+        "api_calls"
+      ],
+      "safety": "reports_only"
+    },
+    {
+      "name": "RansomSet",
+      "path": "data/raw/ransomset",
+      "source_url": "https://github.com/gabrielolivs/RansomSet",
+      "type": "dynamic_behavior_explainable",
+      "priority": 2,
+      "symptom_groups": [
+        "file",
+        "process",
+        "network",
+        "explainability"
+      ],
+      "safety": "features_reports_only"
+    },
+    {
+      "name": "RanSAP",
+      "path": "data/raw/ransap",
+      "source_url": "https://github.com/manabu-hirano/RanSAP",
+      "type": "storage_behavior",
+      "priority": 2,
+      "symptom_groups": [
+        "storage_memory",
+        "file"
+      ],
+      "safety": "selected_csv_traces_only_no_real_ransomware_execution",
+      "status": "waiting_for_windows_import"
+    },
+    {
+      "name": "Kaggle_Ransomware_PE",
+      "path": "data/raw/kaggle_ransomware_pe",
+      "source_url": "https://www.kaggle.com/datasets/amdj3dax/ransomware-detection-data-set",
+      "type": "static_pe_features",
+      "priority": 2,
+      "symptom_groups": [
+        "static_reverse"
+      ],
+      "safety": "feature_dataset_only"
+    },
+    {
+      "name": "API_Call_Sequences",
+      "path": "data/raw/api_call_sequences",
+      "source_url": "https://www.kaggle.com/datasets/ang3loliveira/malware-analysis-datasets-api-call-sequences",
+      "type": "api_call_sequence",
+      "priority": 3,
+      "symptom_groups": [
+        "process",
+        "api_calls",
+        "sequence"
+      ],
+      "safety": "api_sequence_dataset_only"
+    },
+    {
+      "name": "Windows_PE_API_Calls",
+      "path": "data/raw/windows_pe_api_calls",
+      "source_url": "https://github.com/ocatak/malware_api_class",
+      "type": "cuckoo_api_calls_csv",
+      "priority": 3,
+      "symptom_groups": [
+        "api_calls",
+        "process",
+        "file",
+        "network"
+      ],
+      "safety": "csv_features_only"
+    },
+    {
+      "name": "UGRansome2024",
+      "path": "data/raw/ugransome2024",
+      "source_url": "https://www.kaggle.com/dsv/7172543",
+      "type": "dynamic_feature_dataset",
+      "priority": 3,
+      "symptom_groups": [
+        "network",
+        "unknown_learning"
+      ],
+      "safety": "feature_dataset_only"
+    },
+    {
+      "name": "SILRAD",
+      "path": "data/raw/silrad",
+      "source_url": "https://zenodo.org/records/17104902",
+      "type": "sysmon_logs_incremental_learning",
+      "priority": 3,
+      "symptom_groups": [
+        "file",
+        "process",
+        "registry",
+        "unknown_learning"
+      ],
+      "safety": "sysmon_logs_only"
+    },
+    {
+      "name": "Ransomware_Dataset_2024",
+      "path": "data/raw/ransomware_dataset_2024",
+      "source_url": "https://zenodo.org/records/13890887",
+      "type": "malware_benign_balanced",
+      "priority": 4,
+      "symptom_groups": [
+        "static_reverse",
+        "behavior"
+      ],
+      "safety": "inspect_before_use"
+    },
+    {
+      "name": "Android_Ransomware_Detection",
+      "path": "data/raw/android_ransomware",
+      "source_url": "https://www.kaggle.com/datasets/subhajournal/android-ransomware-detection",
+      "type": "android_ransomware_features",
+      "priority": 5,
+      "symptom_groups": [
+        "network",
+        "android_behavior"
+      ],
+      "safety": "feature_dataset_only"
+    }
+  ]
+}
