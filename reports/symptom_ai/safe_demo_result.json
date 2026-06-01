@@ -1,0 +1,62 @@
+{
+  "timestamp": "2026-06-01T21:25:16.295064",
+  "demo_type": "safe_ransomware_like_symptom_simulation",
+  "real_ransomware_executed": false,
+  "symptoms": {
+    "file_write_burst": 0.95,
+    "file_rename_burst": 0.91,
+    "high_entropy_write": 0.93,
+    "mass_file_modification": 0.88,
+    "suspicious_extension_change": 0.86,
+    "ransom_note_created": 0.1,
+    "backup_disable_attempt": 0.0,
+    "shadow_copy_delete_attempt": 0.0,
+    "c2_beaconing": 0.0,
+    "data_exfiltration_pattern": 0.0
+  },
+  "risk_score": 0.4296,
+  "similarity": {
+    "best_match": {
+      "profile": "lockbit_like",
+      "similarity": 0.9547
+    },
+    "all_matches": [
+      {
+        "profile": "lockbit_like",
+        "similarity": 0.9547
+      },
+      {
+        "profile": "benign_office_like",
+        "similarity": 0.8787
+      },
+      {
+        "profile": "network_exfiltration_like",
+        "similarity": 0.3499
+      }
+    ]
+  },
+  "unknown_detection": {
+    "best_similarity": 0.9547,
+    "symptom_risk_score": 0.4296,
+    "unknown_risk": "low"
+  },
+  "response": {
+    "severity": "High",
+    "policy": "isolate_and_backup",
+    "active_symptoms": [
+      "file_write_burst",
+      "file_rename_burst",
+      "high_entropy_write",
+      "mass_file_modification",
+      "suspicious_extension_change"
+    ],
+    "recommended_actions": [
+      "Create emergency backup of protected folders",
+      "Temporarily block write access to protected folders",
+      "Collect file activity evidence",
+      "Enable protected folder read-only mode",
+      "Alert analyst about mass rename behavior"
+    ]
+  },
+  "lockdown_result": null
+}
