@@ -4,60 +4,93 @@ import shutil
 import json
 
 
-def emergency_backup(protected_dir: str, backup_root: str) -> str:
+def ensure_demo_protected_docs(protected_dir: str = "data/protected_docs") -> None:
+    protected_path = Path(protected_dir)
+    protected_path.mkdir(parents=True, exist_ok=True)
+
+    for i in range(1, 4):
+        f = protected_path / f"important_report_{i}.txt"
+        if not f.exists():
+            f.write_text(
+                f"Important protected demo document {i}\n",
+                encoding="utf-8"
+            )
+
+
+def emergency_backup(
+    protected_dir: str = "data/protected_docs",
+    backup_root: str = "data/emergency_backup"
+) -> str:
     protected_path = Path(protected_dir)
     backup_path = Path(backup_root)
+
+    protected_path.mkdir(parents=True, exist_ok=True)
     backup_path.mkdir(parents=True, exist_ok=True)
 
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     current_backup = backup_path / f"backup_{stamp}"
     current_backup.mkdir(parents=True, exist_ok=True)
 
-    if protected_path.exists():
-        for item in protected_path.glob("*"):
-            if item.is_file():
-                shutil.copy2(item, current_backup / item.name)
+    for item in protected_path.glob("*"):
+        if item.is_file():
+            shutil.copy2(item, current_backup / item.name)
 
     return str(current_backup)
 
 
-def lock_protected_files_demo(protected_dir: str) -> list:
+def lock_protected_files_demo(protected_dir: str = "data/protected_docs") -> list:
     """
-    Demo-only protection:
-    Make files read-only inside lab protected folder.
-    This does not touch real user directories.
+    Demo-only lock:
+    only changes files inside data/protected_docs to read-only.
+    It does not touch real user folders.
     """
     protected_path = Path(protected_dir)
+    protected_path.mkdir(parents=True, exist_ok=True)
+
     locked_files = []
 
-    if protected_path.exists():
-        for item in protected_path.glob("*"):
-            if item.is_file():
-                item.chmod(0o444)
-                locked_files.append(str(item))
+    for item in protected_path.glob("*"):
+        if item.is_file():
+            item.chmod(0o444)
+            locked_files.append(str(item))
 
     return locked_files
 
 
-def store_unknown_case(case: dict, unknown_case_dir: str) -> str:
+def unlock_protected_files_demo(protected_dir: str = "data/protected_docs") -> list:
+    protected_path = Path(protected_dir)
+    unlocked_files = []
+
+    if protected_path.exists():
+        for item in protected_path.glob("*"):
+            if item.is_file():
+                item.chmod(0o644)
+                unlocked_files.append(str(item))
+
+    return unlocked_files
+
+
+def store_unknown_case(
+    case: dict,
+    unknown_case_dir: str = "data/unknown_cases"
+) -> str:
     out_dir = Path(unknown_case_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_file = out_dir / f"unknown_case_{stamp}.json"
+
     out_file.write_text(json.dumps(case, indent=2), encoding="utf-8")
 
     return str(out_file)
 
 
 def run_protective_lockdown(case: dict) -> dict:
-    protected_dir = "data/protected_docs"
-    backup_root = "data/emergency_backup"
-    unknown_case_dir = "data/unknown_cases"
+    ensure_demo_protected_docs()
 
-    backup_path = emergency_backup(protected_dir, backup_root)
-    locked_files = lock_protected_files_demo(protected_dir)
-    unknown_case_path = store_unknown_case(case, unknown_case_dir)
+    backup_path = emergency_backup()
+    locked_files = lock_protected_files_demo()
+    unknown_case_path = store_unknown_case(case)
 
     return {
         "lockdown_mode": True,

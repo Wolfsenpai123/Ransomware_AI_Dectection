@@ -1,19 +1,77 @@
+# Python
 venv/
+.venv/
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
 
-data/live_watch/*
-data/protected_docs/*
-data/emergency_backup/*
-data/quarantine/*
-data/unknown_cases/*
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*.json
+secrets*.json
 
-reports/symptom_ai/*.json
-reports/symptom_ai/*.csv
+# Logs and runtime output
+*.log
+reports/live_monitoring/
+data/custom_sandbox/events/
+data/custom_sandbox/control/
+data/learning_queue/
+mlruns/
+mlartifacts/
 
-models/*.pkl
+# Large datasets / model artifacts
+data/raw/*
+data/bodmas.npz
 models/*.joblib
+models/*.pkl
+models/*.onnx
 
+# Malware / quarantine / binaries
+quarantine/
+malware_quarantine/
+*.exe
+*.dll
+*.scr
+*.msi
+*.iso
+*.vmdk
+*.vmx
+*.zip
+
+# OS files
 .DS_Store
+Thumbs.db
+!data/raw/dataset_registry.json
+
+# Generated safe demo data
+data/custom_sandbox/lab_files/
+data/simulated_enterprise/
+data/emergency_backup/
+data/symptom_labels/
+data/unknown_cases/
+
+# Generated reports and replay outputs
+reports/datasets/
+reports/demo/
+reports/incidents/
+reports/sandbox/
+reports/symptom_ai/
+
+# Trained models and explainability artifacts
+models/*
+!models/README.md
+
+# Local backup / temporary source files
+*.bak
+*.bak_*
+*.broken_*
+*_backup
+
+# Generated live demo artifacts
+data/live_watch/
+data/protected_docs/

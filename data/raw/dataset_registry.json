@@ -155,7 +155,8 @@
         "registry",
         "unknown_learning"
       ],
-      "safety": "sysmon_logs_only"
+      "safety": "sysmon_logs_or_csv_features_only",
+      "status": "imported"
     },
     {
       "name": "Ransomware_Dataset_2024",
@@ -167,7 +168,8 @@
         "static_reverse",
         "behavior"
       ],
-      "safety": "inspect_before_use"
+      "safety": "csv_features_only",
+      "status": "imported"
     },
     {
       "name": "Android_Ransomware_Detection",
