@@ -20,3 +20,16 @@ threadpoolctl==3.6.0
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 uvicorn==0.48.0
+
+# Additional packages required by the merged repository modules
+xgboost
+matplotlib
+plotly
+streamlit
+pyarrow
+pefile
+yara-python
+python-magic
+networkx
+shap
+prometheus-client
