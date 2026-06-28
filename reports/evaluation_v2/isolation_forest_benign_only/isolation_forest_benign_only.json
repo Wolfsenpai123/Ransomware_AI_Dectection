@@ -5,7 +5,8 @@
     "n_estimators": 200,
     "max_samples": 256,
     "contamination": "auto",
-    "random_state": 42
+    "random_state": 42,
+    "artifact_path": "models/unknown_behavior_detector_benign_only.joblib"
   },
   "source": "CSU_Ransomware_Data",
   "feature_count": 131,

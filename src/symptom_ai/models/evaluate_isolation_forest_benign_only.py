@@ -3,6 +3,7 @@ import csv
 import hashlib
 import json
 
+import joblib
 import numpy as np
 import pandas as pd
 
@@ -12,6 +13,7 @@ from sklearn.ensemble import IsolationForest
 SOURCE = "CSU_Ransomware_Data"
 ROOT = Path("reports/evaluation_v2")
 OUTPUT_DIR = ROOT / "isolation_forest_benign_only"
+MODEL_ARTIFACT = Path("models/unknown_behavior_detector_benign_only.joblib")
 
 POSITIVE_LABEL = "known_ransomware_like"
 NEGATIVE_LABEL = "benign"
@@ -221,6 +223,9 @@ def main():
 
     model.fit(X_fit)
 
+    MODEL_ARTIFACT.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump(model, MODEL_ARTIFACT)
+
     calibration_scores = anomaly_scores(model, X_calibration)
     benign_test_scores = anomaly_scores(model, X_benign_test)
     akira_scores = anomaly_scores(model, X_akira)
@@ -308,6 +313,7 @@ def main():
             "max_samples": 256,
             "contamination": "auto",
             "random_state": 42,
+            "artifact_path": str(MODEL_ARTIFACT),
         },
         "source": SOURCE,
         "feature_count": len(feature_cols),
@@ -362,6 +368,7 @@ def main():
     print("\n=== CALIBRATION COMPLETE ===")
     print(f"JSON report: {json_path}")
     print(f"CSV report:  {csv_path}")
+    print(f"Model artifact: {MODEL_ARTIFACT}")
 
 
 if __name__ == "__main__":
