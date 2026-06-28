@@ -324,7 +324,15 @@ def append_jsonl(path, obj):
 
 
 def save_learning_case(window_id, events, symptoms, damage, ai_result, reason):
+    """
+    Save a suspicious safe-sandbox case for analyst review.
+
+    This function does not create a learned signature and does not
+    trigger automatic retraining.
+    """
     out = QUEUE_DIR / f"learning_case_{window_id}.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+
     case = {
         "window_id": window_id,
         "saved_at": now_iso(),
@@ -336,12 +344,21 @@ def save_learning_case(window_id, events, symptoms, damage, ai_result, reason):
         "label": "known_ransomware_like",
         "family": "unknown_ransomware_candidate",
         "response_policy": "protective_lockdown",
-        "learning_status": "queued_for_auto_retraining",
-        "safety_note": "Safe sandbox logs only. No real ransomware was executed.",
+        "learning_status": "pending_review",
+        "analyst_decision": None,
+        "reviewed_by": None,
+        "reviewed_at": None,
+        "review_note": None,
+        "signature_status": "not_created",
+        "safety_note": (
+            "Safe sandbox logs only. No real ransomware was executed. "
+            "Analyst approval is required before a learned signature "
+            "can be created."
+        ),
     }
+
     out.write_text(json.dumps(case, indent=2), encoding="utf-8")
     return str(out)
-
 
 def save_error_case(window_id, events, symptoms, damage, ai_result):
     out = ERROR_DIR / f"api_error_case_{window_id}.json"
@@ -368,69 +385,135 @@ def load_learned_signatures():
         return []
 
 
-def save_learned_signature(window_id, events, damage):
+def save_learned_signature(
+    window_id,
+    events,
+    damage,
+    approved_by,
+    review_note,
+    source_case_file,
+):
+    """
+    Save a learned signature only after an explicit analyst approval.
+    """
     signatures = load_learned_signatures()
 
-    event_types = sorted({e.get("event_type") for e in events if e.get("event_type")})
-    scenario_types = sorted({e.get("scenario_type") for e in events if e.get("scenario_type")})
+    event_types = sorted({
+        event.get("event_type")
+        for event in events
+        if event.get("event_type")
+    })
+
+    scenario_types = sorted({
+        event.get("scenario_type")
+        for event in events
+        if event.get("scenario_type")
+    })
 
     signature = {
         "signature_id": f"learned_{window_id}",
         "created_at": now_iso(),
         "source_window_id": window_id,
-        "reason": "Missed detection reached simulated ransomware impact. Signature saved for future automatic detection.",
+        "source_case_file": source_case_file,
+        "reason": (
+            "Analyst-approved safe-sandbox behavior signature. "
+            "Created only after manual review."
+        ),
         "scenario_types": scenario_types,
         "event_types": event_types,
-        "high_impact_event_count": damage.get("high_impact_event_count", 0),
+        "high_impact_event_count": damage.get(
+            "high_impact_event_count",
+            0,
+        ),
         "host_count": damage.get("host_count", 0),
         "label": "learned_unknown_ransomware",
         "policy": "protective_lockdown",
+        "approval_status": "approved",
+        "approved_by": approved_by,
+        "approved_at": now_iso(),
+        "review_note": review_note,
     }
 
-    existing_ids = {s.get("signature_id") for s in signatures}
+    existing_ids = {
+        signature_item.get("signature_id")
+        for signature_item in signatures
+    }
+
     if signature["signature_id"] not in existing_ids:
         signatures.append(signature)
 
-    LEARNED_SIGNATURES.write_text(json.dumps(signatures, indent=2), encoding="utf-8")
+    LEARNED_SIGNATURES.parent.mkdir(parents=True, exist_ok=True)
+    LEARNED_SIGNATURES.write_text(
+        json.dumps(signatures, indent=2),
+        encoding="utf-8",
+    )
+
     return str(LEARNED_SIGNATURES)
 
-
 def match_learned_signature(events):
+    """
+    Match only analyst-approved learned signatures.
+
+    Old or pending signatures are intentionally ignored.
+    """
     signatures = load_learned_signatures()
+
     if not signatures:
         return None
 
-    current_event_types = {e.get("event_type") for e in events if e.get("event_type")}
-    current_scenario_types = {e.get("scenario_type") for e in events if e.get("scenario_type")}
+    current_event_types = {
+        event.get("event_type")
+        for event in events
+        if event.get("event_type")
+    }
 
-    for sig in signatures:
-        sig_event_types = set(sig.get("event_types", []))
-        sig_scenario_types = set(sig.get("scenario_types", []))
+    current_scenario_types = {
+        event.get("scenario_type")
+        for event in events
+        if event.get("scenario_type")
+    }
 
-        shared_events = current_event_types & sig_event_types
-        shared_scenarios = current_scenario_types & sig_scenario_types
+    for signature in signatures:
+        if signature.get("approval_status") != "approved":
+            continue
 
-        # Match nếu cùng scenario_type novel_zero_day hoặc có ít nhất 3 event lạ trùng.
+        signature_event_types = set(
+            signature.get("event_types", [])
+        )
+
+        signature_scenario_types = set(
+            signature.get("scenario_types", [])
+        )
+
+        shared_events = current_event_types & signature_event_types
+        shared_scenarios = (
+            current_scenario_types & signature_scenario_types
+        )
+
         if shared_scenarios:
             return {
                 "matched": True,
-                "signature_id": sig.get("signature_id"),
-                "reason": "Matched learned scenario type from previous missed detection.",
+                "signature_id": signature.get("signature_id"),
+                "reason": (
+                    "Matched analyst-approved learned scenario type."
+                ),
                 "shared_event_types": sorted(shared_events),
-                "signature": sig,
+                "signature": signature,
             }
 
         if len(shared_events) >= 3:
             return {
                 "matched": True,
-                "signature_id": sig.get("signature_id"),
-                "reason": "Matched multiple learned zero-day event types.",
+                "signature_id": signature.get("signature_id"),
+                "reason": (
+                    "Matched multiple analyst-approved learned "
+                    "behavior event types."
+                ),
                 "shared_event_types": sorted(shared_events),
-                "signature": sig,
+                "signature": signature,
             }
 
     return None
-
 
 def decide_alert_type(ai_result, damage, policy, unknown_risk):
     """
@@ -667,7 +750,7 @@ def evaluate_window(window_events, window_index):
             ai_result,
             reason="File-impact indicators appeared but containment policy was not triggered.",
         )
-        learned_signature_file = save_learned_signature(window_id, window_events, damage)
+        # Signature creation is deferred until analyst approval.
 
     if alert_type == "api_error_needs_review":
         error_case_file = save_error_case(
