@@ -835,6 +835,8 @@ def evaluate_window(window_events, window_index):
         "predicted_label": predicted,
         "risk_score": risk,
         "unknown_risk": unknown_risk,
+        "unknown_detector_mode": ai_result.get("unknown_detector_mode"),
+        "unknown_detector_shadow": ai_result.get("unknown_detector_shadow"),
         "severity": response.get("severity"),
         "policy": policy,
         "containment_triggered": containment_triggered,
