@@ -574,8 +574,12 @@ def decide_alert_type(ai_result, damage, policy, unknown_risk):
     return "monitor"
 
 def write_stop_signal(window_id, alert_type, policy, damage):
-    # Preserve the FIRST containment point.
-    # Later buffered windows must not overwrite the original stop signal.
+    """
+    Write a safe-sandbox containment stop signal.
+
+    This does not stop a real host. It only tells the safe demo runner
+    to stop generating additional simulated events.
+    """
     if STOP_SIGNAL.exists():
         return str(STOP_SIGNAL)
 
@@ -584,13 +588,32 @@ def write_stop_signal(window_id, alert_type, policy, damage):
         "window_id": window_id,
         "alert_type": alert_type,
         "policy": policy,
-        "reason": "AI watcher detected file impact and containment policy. Safe sandbox should stop generating events.",
-        "damage": damage
+        "signal_type": "simulated_containment_stop",
+        "containment_triggered": True,
+        "triggered_after_file_impact": bool(
+            damage.get("has_file_impact")
+        ),
+        "sandbox_safety_stop": True,
+        "stop_reason": (
+            "confirmed_simulated_file_impact_with_"
+            "containment_policy"
+        ),
+        "reason": (
+            "Confirmed simulated file impact met the containment "
+            "condition. The safe sandbox runner should stop "
+            "generating additional events."
+        ),
+        "safety_scope": "safe_sandbox_only",
+        "damage": damage,
     }
-    STOP_SIGNAL.write_text(json.dumps(signal, indent=2), encoding="utf-8")
+
+    STOP_SIGNAL.parent.mkdir(parents=True, exist_ok=True)
+    STOP_SIGNAL.write_text(
+        json.dumps(signal, indent=2),
+        encoding="utf-8",
+    )
+
     return str(STOP_SIGNAL)
-
-
 
 def update_early_detection_metrics(events, alert_type):
     """
@@ -763,6 +786,33 @@ def evaluate_window(window_events, window_index):
 
     stop_signal_file = None
 
+    containment_triggered = bool(
+        damage.get("has_file_impact")
+        and (
+            alert_type in {
+                "unknown_ransomware_contained",
+                "ransomware_impact_contained",
+                "known_ransomware_contained",
+                "learned_unknown_ransomware_detected",
+            }
+            or policy in {"protective_lockdown", "isolate_and_backup"}
+        )
+    )
+
+    stop_reason = (
+        "confirmed_simulated_file_impact_with_containment_policy"
+        if containment_triggered
+        else None
+    )
+
+    triggered_after_file_impact = bool(
+        containment_triggered
+        and damage.get("has_file_impact")
+    )
+
+    # Only stops the safe demo runner, never a real endpoint.
+    sandbox_safety_stop = containment_triggered
+
     explain_result = None
     dataset_evidence = None
 
@@ -787,6 +837,10 @@ def evaluate_window(window_events, window_index):
         "unknown_risk": unknown_risk,
         "severity": response.get("severity"),
         "policy": policy,
+        "containment_triggered": containment_triggered,
+        "stop_reason": stop_reason,
+        "triggered_after_file_impact": triggered_after_file_impact,
+        "sandbox_safety_stop": sandbox_safety_stop,
 
         "spread_report": spread_report,
         "damage": damage,
@@ -807,21 +861,15 @@ def evaluate_window(window_events, window_index):
     }
 
 
-    # STOP_SIGNAL is only generated after confirmed simulated file impact.
-    # Early-warning alerts must not stop the scenario by themselves.
-    if (
-        damage.get("has_file_impact")
-        and (
-            alert_type in {
-                "unknown_ransomware_contained",
-                "ransomware_impact_contained",
-                "known_ransomware_contained",
-                "learned_unknown_ransomware_detected",
-            }
-            or policy in {"protective_lockdown", "isolate_and_backup"}
+    # Early warnings do not stop the scenario.
+    # Only confirmed simulated impact triggers sandbox containment.
+    if containment_triggered:
+        stop_signal_file = write_stop_signal(
+            window_id,
+            alert_type,
+            policy,
+            damage,
         )
-    ):
-        stop_signal_file = write_stop_signal(window_id, alert_type, policy, damage)
         alert["stop_signal_file"] = stop_signal_file
         print(f"[AI WATCHER] stop signal written: {stop_signal_file}")
 
