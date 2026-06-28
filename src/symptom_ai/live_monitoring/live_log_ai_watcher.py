@@ -15,7 +15,7 @@ ERROR_DIR = Path("reports/live_monitoring/error_cases")
 CONTROL_DIR = Path("data/custom_sandbox/control")
 STOP_SIGNAL = CONTROL_DIR / "STOP_SIGNAL.json"
 
-API_URL = "http://localhost:8000/respond"
+API_URL = "http://localhost:8000/predict"
 API_EXPLAIN_URL = "http://localhost:8000/explain"
 
 REPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -39,6 +39,7 @@ HIGH_IMPACT_EVENTS = {
 
 
 EARLY_DETECTION_ALERT_TYPES = {
+    "early_warning_known_ransomware",
     "early_warning_unknown_behavior",
     "early_containment_recommended",
     "unknown_ransomware_contained",
@@ -432,12 +433,25 @@ def match_learned_signature(events):
 
 
 def decide_alert_type(ai_result, damage, policy, unknown_risk):
-    has_api_error = "api_error" in ai_result
-    dangerous_policy = policy in {"isolate_and_backup", "protective_lockdown"}
-    has_impact = bool(damage["has_file_impact"])
-
-    if has_api_error:
+    """
+    Combine XGBoost classification, Isolation Forest anomaly evidence,
+    policy recommendation, and file-impact rules.
+    """
+    if "api_error" in ai_result:
         return "api_error_needs_review"
+
+    has_impact = bool(damage.get("has_file_impact"))
+    dangerous_policy = policy in {"isolate_and_backup", "protective_lockdown"}
+
+    predicted_label = str(
+        ai_result.get("predicted_label", "")
+    ).strip().lower()
+
+    xgb_ransomware = predicted_label == "known_ransomware_like"
+
+    # Early stage: no high-impact file behavior yet.
+    if not has_impact and xgb_ransomware:
+        return "early_warning_known_ransomware"
 
     if not has_impact and unknown_risk == "high":
         return "early_warning_unknown_behavior"
@@ -445,15 +459,18 @@ def decide_alert_type(ai_result, damage, policy, unknown_risk):
     if not has_impact and dangerous_policy:
         return "early_containment_recommended"
 
+    # Impact stage: combine XGBoost, anomaly signal, policy, and rules.
+    if has_impact and xgb_ransomware:
+        return "ransomware_impact_contained"
+
     if has_impact and unknown_risk == "high" and dangerous_policy:
         return "unknown_ransomware_contained"
 
     if has_impact and dangerous_policy:
         return "ransomware_impact_contained"
 
-    # Known ransomware-style file impact should be contained immediately.
-    # This prevents scenario 3 from being treated as missed_detection_infected.
     event_counts = damage.get("event_type_counts", {}) or {}
+
     known_file_impact_count = sum(
         int(event_counts.get(name, 0) or 0)
         for name in (
@@ -468,11 +485,10 @@ def decide_alert_type(ai_result, damage, policy, unknown_risk):
     if has_impact and known_file_impact_count >= 3:
         return "ransomware_impact_contained"
 
-    if has_impact and not dangerous_policy:
+    if has_impact:
         return "missed_detection_infected"
 
     return "monitor"
-
 
 def write_stop_signal(window_id, alert_type, policy, damage):
     # Preserve the FIRST containment point.
@@ -663,8 +679,6 @@ def evaluate_window(window_events, window_index):
         )
 
     stop_signal_file = None
-    if alert_type in {"unknown_ransomware_contained", "ransomware_impact_contained", "ransomware_impact_contained"}:
-        stop_signal_file = write_stop_signal(window_id, alert_type, policy, damage)
 
     explain_result = None
     dataset_evidence = None
@@ -747,9 +761,6 @@ def evaluate_window(window_events, window_index):
 
     if error_case_file:
         print(f"[AI WATCHER] error case saved: {error_case_file}")
-
-    if stop_signal_file:
-        print(f"[AI WATCHER] stop signal written: {stop_signal_file}")
 
     return alert
 
